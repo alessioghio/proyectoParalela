@@ -1,2 +1,2 @@
-# proyectoParalela
-#TeamOhm
+# #TeamOhm
+

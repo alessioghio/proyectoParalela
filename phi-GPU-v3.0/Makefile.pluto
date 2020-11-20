@@ -1,0 +1,16 @@
+CUDA_PATH=/export/opt/cuda
+SDK_PATH=/export/opt/cuda/NVIDIA_CUDA_SDK
+#SDK_PATH=/Developer/CUDA
+CXXFLAGS = -O3 -Wall -fopenmp
+
+gpu-6th: phi-GPU.cpp hermite6-gpu.o
+	mpicxx $(CXXFLAGS) -DSIXTH -DGPU -I$(CUDA_PATH)/include -L$(CUDA_PATH)/lib -lcuda -lcudart -o phi-GPU.exe $^
+
+gpu-6th.s: phi-GPU.cpp hermite6-gpu.o
+	mpicxx $(CXXFLAGS) -DSIXTH -DGPU -I$(CUDA_PATH)/include  -S -o $@ $<
+
+hermite6-gpu.o: hermite6-gpu.cu hermite6-gpu.h
+	nvcc -I $(SDK_PATH)/common/inc -Xcompiler "-O3" -c $<
+
+cubin: hermite6-gpu.cu
+	nvcc -I $(SDK_PATH)/common/inc -Xcompiler "-O3" -cubin $<

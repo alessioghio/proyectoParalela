@@ -1,0 +1,11 @@
+CMA: unable to get RDMA device list
+Rank of the processor 00 on guest033.ari.uni-heidelberg.de 
+Rank 00 : GPU 0 : GeForce 9800 GTX/9800 GTX+
+
+Begin the calculation of phi-GPU4 program on 001 processors
+
+N       = 016384 	 eps      = 1.000000E-04 
+t_beg   = 0.000000E+00 	 t_end    = 1.000000E+00 
+dt_disk = 1.000000E+00 	 dt_contr = 1.250000E-01 
+eta     = 1.500000E-01 	 eta_BH   = 1.500000E-01 
+

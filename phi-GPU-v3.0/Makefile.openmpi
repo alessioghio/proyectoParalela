@@ -1,0 +1,11 @@
+gpu-6th: phi-GPU.cpp hermite6-gpu.o
+	/usr/mpi/gcc/openmpi-1.2.6/bin/mpicxx -Wall -fopenmp -O3 -DSIXTH -DGPU -I /usr/local/cuda/include -L /usr/local/cuda/lib -lcudart -o phi-GPU.exe $^
+
+gpu-6th.s: phi-GPU.cpp hermite6-gpu.o
+	/usr/mpi/gcc/openmpi-1.2.6/bin/mpicxx -Wall -S -fopenmp -O3 -DSIXTH -DGPU -I /usr/local/cuda/include -L /usr/local/cuda/lib -lcudart -o $@ $^
+
+hermite6-gpu.o: hermite6-gpu.cu hermite6-gpu.h
+	nvcc -I /usr/local/NVIDIA_CUDA_SDK/common/inc  --host-compilation c++ -Xcompiler "-O3" -c $<
+
+cubin: hermite6-gpu.cu
+	/usr/local/cuda/bin/nvcc --host-compilation c++ -Xcompiler "-O3" -cubin $<

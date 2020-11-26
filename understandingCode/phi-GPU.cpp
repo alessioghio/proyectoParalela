@@ -53,6 +53,7 @@ extern double wtime() {
 }
 #endif
 
+/* Desc: Update real, user nad system time */
 static void get_CPU_time(double *time_real, double *time_user, double *time_syst) {
 	// Store the resource usage of a process
     struct rusage rscs_usage;
@@ -86,6 +87,7 @@ static void get_CPU_time(double *time_real, double *time_user, double *time_syst
 }
 
 // If a file is defined, use this function
+/* Desc: Save new particles' state */
 static void outputsnap(FILE *out){
 	// Save algorithm parameters to the output file
     fprintf(out,"%04d \n", diskstep);
@@ -101,6 +103,7 @@ static void outputsnap(FILE *out){
 }
 
 // If a file is not defined, use this function instead
+/* Desc: Create file, save new particles' state and also save on history file */
 static void outputsnap(){
 	// Name of the output file
     static char out_fname[256];
@@ -125,6 +128,7 @@ static void outputsnap(){
 	fclose(out);
 }
 
+/* Desc: */
 static void energy(int myRank){
 	static bool init_call = true;
 	static double einit;
@@ -224,60 +228,53 @@ int main(int argc, char *argv[]) {
         // Load parallel configuration
 		std::ifstream ifs("cfgs/phi-GPU4.cfg");
 
+		// Import configuration variables
 		static char inp_fname[256];
 		ifs >> eps >> t_end >> dt_disk >> dt_contr >> eta >> eta_BH >> inp_fname;
-		if(ifs.fail()) MPI_Abort(MPI_COMM_WORLD, -1);
+		
+		// Abort execution if the configuration file could not be opened
+		if(ifs.fail())
+			MPI_Abort(MPI_COMM_WORLD, -1);
+		
+		// Import particles' parameters
 		std::ifstream inp(inp_fname);
-		// std::cerr << inp_fname << std::endl;
 		inp >> diskstep >> nbody >> time_cur;
-		// std::cerr << diskstep << " " << nbody << " " << time_cur << std::endl;
+		
+		// Make sure the number of particles do not exced the previoulsy defined maximum size
 		assert(nbody <= N_MAX);
 		assert(nbody/n_proc <= N_MAX_loc);
 		
+		// Abort execution if the particles' parameters do not fit the variable type
         if (inp.fail())
             MPI_Abort(MPI_COMM_WORLD, -2);
 		
+		// Import particles' initial state to each particle object
         for (int i = 0; i < nbody; i++) {
 			Particle &p = ptcl[i];
 			inp >> p.id >> p.mass >> p.pos >> p.vel;
 			p.t = time_cur;
 		}
 		
+		// Abort execution if the particles' initial states do not fit the variable type
         if(inp.fail())
             MPI_Abort(MPI_COMM_WORLD, -3);
-
-        #ifdef CMCORR
-            if (diskstep == 0) {
-                double msum = 0.0;
-                dvec3 xsum = 0.0, vsum=0.0;
-                for (int i = 0; i < nbody; i++) {
-                    msum += ptcl[i].mass;
-                    xsum += ptcl[i].mass * ptcl[i].pos;
-                    vsum += ptcl[i].mass * ptcl[i].vel;
-                }
-                
-                xsum /= msum;
-                vsum /= msum;
-                for (int i = 0; i < nbody; i++) {
-                    ptcl[i].pos -= xsum;
-                    ptcl[i].vel -= vsum;
-                }
-            }
-        #endif
 
         printf("\nBegin the calculation of phi-GPU4 program on %03d processors\n\n", n_proc); 
         printf("N       = %06d \t eps      = %.6E \n", nbody, eps);
         printf("t_beg   = %.6E \t t_end    = %.6E \n", time_cur, t_end);
         printf("dt_disk = %.6E \t dt_contr = %.6E \n", dt_disk, dt_contr);
         printf("eta     = %.6E \t eta_BH   = %.6E \n\n", eta, eta_BH);
-        fflush(stdout);
+        fflush(stdout); // Wait for the printing process to finish
 
+		// Save particles' states if the particles' file has 0 as an "id"
         if (diskstep == 0)
             outputsnap();
         
+		// Update times
         get_CPU_time(&CPU_time_real0, &CPU_time_user0, &CPU_time_syst0);
     }
 
+	// Send configuration parameters to every process
 	MPI_Barrier(MPI_COMM_WORLD);
 	MPI_Bcast(&nbody,    1, MPI_INT,    0, MPI_COMM_WORLD);
 	MPI_Bcast(&eps,      1, MPI_DOUBLE, 0, MPI_COMM_WORLD);  
@@ -288,52 +285,66 @@ int main(int argc, char *argv[]) {
 	MPI_Bcast(&dt_contr, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	MPI_Bcast(&time_cur, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-	double dt_max = 1. / (1 << 3);
+	// NOTE: Every process does the following
+
+	// Divide maximum diferential by 2 while it is greater than the minimum value of
+	// interval of snapshot files output and interval for the energy control output
+	double dt_max = 1. / (1 << 3); // 1/2^3
 	while (dt_max >= std::min(dt_disk, dt_contr)) 
         dt_max *= 0.5;
 	
-    double dt_min = 1. / (1 << 23);
-
-	int n_loc = nbody/n_proc;
+	// Minimum diferential
+    double dt_min = 1. / (1 << 23); // 1/2^23
+	
+	// Update controlled times
 	double t_disk  = time_cur + dt_disk;
 	double t_contr = time_cur + dt_contr;
 
 	MPI_Barrier(MPI_COMM_WORLD);
 	MPI_Bcast(ptcl, nbody*sizeof(Particle), MPI_CHAR, 0, MPI_COMM_WORLD);
 
-	jstart = (myRank * nbody) / n_proc; 
-	jend   = ((1+myRank) * nbody) / n_proc; 
-	n_loc = jend - jstart;
-	int nj = n_loc;
-	int ni = nbody;
+	// Start and end local particle index number 
+	jstart = (myRank * nbody) / n_proc;
+	jend   = ((1+myRank) * nbody) / n_proc;
+
+	// Interval of particles for each process
+	int n_loc = jend - jstart;
 	eps2 = eps*eps;
 
 	MPI_Barrier(MPI_COMM_WORLD);
-	if (myRank == 0)
+	if (myRank == 0) // Update times
 		get_CPU_time(&CPU_time_real0, &CPU_time_user0, &CPU_time_syst0);
 	
 	for (int l = 0; l < Particle::init_iter; l++) {
         #pragma omp parallel for
-            for(int j = 0; j < nj; j++)
+            for(int j = 0; j < n_loc; j++)
                 jpred[j] = Predictor(time_cur, Jparticle(ptcl[j+jstart]));
 
         #pragma omp parallel for
-            for (int i = 0; i < ni; i++)
+            for (int i = 0; i < nbody; i++)
                 ipred[i] = Predictor(time_cur, Jparticle(ptcl[i]));
 
-            double dum;
-            calc_force(ni, nj, eps2, ipred, jpred, force_tmp, dum, dum, dum);
-            MPI_Allreduce(force_tmp, force, ni*Force::nword, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+			// Compute the exerted forces by each particle from the processor subset
+            calc_force(nbody, n_loc, eps2, ipred, jpred, force_tmp);
 
-            for(int i=0; i<ni; i++){
+			// Calculate the resulting force for each particle
+            MPI_Allreduce(force_tmp, force, nbody*Force::nword, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+			// Update each particle's state
+            for(int i = 0; i < nbody; i++){
                 ptcl[i].init(time_cur, dt_min, dt_max, eta, force[i]);
                 t_plus_dt[i].first = ptcl[i].t + ptcl[i].dt;	
                 t_plus_dt[i].second = i;
+
+				// Update local particle subset
                 jptcl[i] = Jparticle(ptcl[i]);
 		    }
-		std::sort(t_plus_dt, t_plus_dt + ni);
+
+		// Sort particles by time
+		std::sort(t_plus_dt, t_plus_dt + nbody);
 	}
 
+	// Calcultate and print necessary Gflops to execute simulation
 	if (myRank == 0) {
 		get_CPU_time(&CPU_time_real, &CPU_time_user, &CPU_time_syst);
 		double Gflops = Particle::flops * 1.e-9 * Particle::init_iter * double(nbody) * nbody 
@@ -341,31 +352,35 @@ int main(int argc, char *argv[]) {
 		fprintf(stdout, "Initialized, %f Gflops\n", Gflops);
 	}
 
+	// Update energy
 	energy(myRank);
-	if (myRank == 0)
+
+	if (myRank == 0) // Update times
 		get_CPU_time(&CPU_time_real0, &CPU_time_user0, &CPU_time_syst0);
-    
+	
+	// Task time variables
 	double t_scan = 0.0, t_pred = 0.0, t_jsend = 0.0, t_isend = 0.0, t_force = 0.0, t_recv = 0.0, t_comm = 0.0, t_corr = 0.0;
 
 	while (time_cur <= t_end) {
 		double t0 = wtime();
-		double min_t = t_plus_dt[0].first;
+		double min_t = t_plus_dt[0].first; // New time of the first particle
 		int n_act = 0;
 		
+		// Find all particles affected on the same time step and save them on active_list
         while (t_plus_dt[n_act].first == min_t){
 			active_list[n_act] = t_plus_dt[n_act].second;
 			n_act++;
 		}
 		double t1 = wtime();
 
-    #pragma omp parallel for
-		for (int j = 0; j < nj; j++) {
+    	#pragma omp parallel for
+		for (int j = 0; j < n_loc; j++) {
 			jptcl[j+jstart+1].prefetch();
 		   	jpred[j] = Predictor(min_t, jptcl[j+jstart]);
 		}
 		int ni = n_act;
 
-    #pragma omp parallel for
+    	#pragma omp parallel for
 		for (int i = 0; i < ni; i++) {
 			jptcl[active_list[i+1]].prefetch();
 			ipred[i] = Predictor(min_t, jptcl[active_list[i]]);
@@ -373,7 +388,7 @@ int main(int argc, char *argv[]) {
 
 		double t2 = wtime();
 		double t3;
-		calc_force(ni, nj, eps2, ipred, jpred, force_tmp, t3, t_isend, t_recv);
+		calc_force(ni, n_loc, eps2, ipred, jpred, force_tmp, t3, t_isend, t_recv);
 		double t4 = wtime();
 		MPI_Allreduce(force_tmp, force, ni*Force::nword, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 		double t5 = wtime();

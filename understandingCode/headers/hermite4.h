@@ -104,35 +104,16 @@ struct Predictor{
 	}
 };
 
-void calc_force(
-		int ni, 
-		int nj, 
-		double eps2,
-		Predictor ipred[],
-		Predictor jpred[],
-		Force     force[],
-		double &,
-		double &,
-		double &);
-
-#if 1
-void calc_force(
-		int ni, 
-		int nj, 
-		double eps2,
-		Predictor ipred[],
-		Predictor jpred[],
-		Force     force[],
-		double &t1,
-		double &,
-		double &){
-	t1 = wtime();
-#pragma omp parallel for
-	for(int i=0; i<ni; i++){
-		double ax=0, ay=0, az=0;
-		double jx=0, jy=0, jz=0;
-		double pot=0;
-		for(int j=0; j<nj; j++){
+void calc_force(int ni, int nj, double eps2, Predictor ipred[], Predictor jpred[],
+				Force force[]) {
+	#pragma omp parallel for
+	for(int i = 0; i < ni; i++){
+		// Reset predictor state
+		double ax = 0, ay = 0, az = 0;
+		double jx = 0, jy = 0, jz = 0;
+		double pot = 0;
+		for(int j = 0; j < nj; j++){
+			// Differential parameters
 			double dx = jpred[j].pos.x - ipred[i].pos.x;
 			double dy = jpred[j].pos.y - ipred[i].pos.y;
 			double dz = jpred[j].pos.z - ipred[i].pos.z;
@@ -140,10 +121,14 @@ void calc_force(
 			double dvy = jpred[j].vel.y - ipred[i].vel.y;
 			double dvz = jpred[j].vel.z - ipred[i].vel.z;
 
+			// Sphere parameters
 			double r2 = eps2 + dx*dx + dy*dy + dz*dz;
 			double rv = dx*dvx + dy*dvy + dz*dvz;
+
+			// If there is no change in the particle's state, continue to next particle
+			if(r2 == eps2)
+				continue;
 			
-			if(r2 == eps2) continue;
 			double rinv2 = 1.0 / r2;
 			double rinv1 = sqrt(rinv2);
 			rv *= -3.0 * rinv2;
@@ -158,6 +143,7 @@ void calc_force(
 			jy += rinv3 * (dvy + rv * dy);
 			jz += rinv3 * (dvz + rv * dz);
 		}
+
 		force[i].acc.x = ax;
 		force[i].acc.y = ay;
 		force[i].acc.z = az;
@@ -167,4 +153,4 @@ void calc_force(
 		force[i].pot   = -pot;
 	}
 }
-#endif
+

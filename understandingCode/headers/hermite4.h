@@ -34,7 +34,9 @@ struct Particle{
 		pos = vel = acc = jrk = dvec3(0.0);
 		mass = pot = t = dt = 0.0;
 	}
+
 	void prefetch() {}
+	
 	void init(double tsys, double dtmin, double dtmax, double eta, const Force &fo){
 		acc = fo.acc;
 		jrk = fo.jrk;
@@ -123,6 +125,8 @@ void calc_force(int ni, int nj, double eps2, Predictor ipred[], Predictor jpred[
 
 			// Sphere parameters
 			double r2 = eps2 + dx*dx + dy*dy + dz*dz;
+
+			// 
 			double rv = dx*dvx + dy*dvy + dz*dvz;
 
 			// If there is no change in the particle's state, continue to next particle
@@ -136,6 +140,7 @@ void calc_force(int ni, int nj, double eps2, Predictor ipred[], Predictor jpred[
 			double rinv3 = rinv1 * rinv2;
 
 			pot += rinv1;
+			// Calculate acceleration of a particle into another?
 			ax += rinv3 * dx;
 			ay += rinv3 * dy;
 			az += rinv3 * dz;

@@ -375,19 +375,24 @@ int main(int argc, char *argv[]) {
 
     	#pragma omp parallel for
 		for (int j = 0; j < n_loc; j++) {
-			jptcl[j+jstart+1].prefetch();
+			jptcl[j+jstart+1].prefetch(); // does nothing
+			// create a predictor object for each local particle
+			// it estimates the position and speed of the particle for the next time step
 		   	jpred[j] = Predictor(min_t, jptcl[j+jstart]);
 		}
 		int ni = n_act;
 
     	#pragma omp parallel for
 		for (int i = 0; i < ni; i++) {
-			jptcl[active_list[i+1]].prefetch();
+			jptcl[active_list[i+1]].prefetch(); // does nothing
+			// create a predictor object for each active particle, globally
+			// it estimates the position and speed of the particle for the next time step
 			ipred[i] = Predictor(min_t, jptcl[active_list[i]]);
 		}
 
 		double t2 = wtime();
 		double t3;
+		// Compute the exerted forces by each particle from the processor subset
 		calc_force(ni, n_loc, eps2, ipred, jpred, force_tmp, t3, t_isend, t_recv);
 		double t4 = wtime();
 		MPI_Allreduce(force_tmp, force, ni*Force::nword, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);

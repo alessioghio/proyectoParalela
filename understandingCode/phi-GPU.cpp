@@ -315,14 +315,21 @@ int main(int argc, char *argv[]) {
 	if (myRank == 0) // Update times
 		get_CPU_time(&CPU_time_real0, &CPU_time_user0, &CPU_time_syst0);
 	
+	// Initialize particles' sates
 	for (int l = 0; l < Particle::init_iter; l++) {
         #pragma omp parallel for
-            for(int j = 0; j < n_loc; j++)
+            for(int j = 0; j < n_loc; j++){
+				// create a predictor object for each local particle
+				// it estimates the position and speed of the particle for the next time step
                 jpred[j] = Predictor(time_cur, Jparticle(ptcl[j+jstart]));
+			}
 
         #pragma omp parallel for
-            for (int i = 0; i < nbody; i++)
+            for (int i = 0; i < nbody; i++){
+				// create a predictor object for each active particle, globally
+				// it estimates the position and speed of the particle for the next time step
                 ipred[i] = Predictor(time_cur, Jparticle(ptcl[i]));
+			}
 
 			// Compute the exerted forces by each particle from the processor subset
             calc_force(nbody, n_loc, eps2, ipred, jpred, force_tmp);
@@ -361,6 +368,7 @@ int main(int argc, char *argv[]) {
 	// Task time variables
 	double t_scan = 0.0, t_pred = 0.0, t_jsend = 0.0, t_isend = 0.0, t_force = 0.0, t_recv = 0.0, t_comm = 0.0, t_corr = 0.0;
 
+	// Update particles' states for each calculated time step
 	while (time_cur <= t_end) {
 		double t0 = wtime();
 		double min_t = t_plus_dt[0].first; // New time of the first particle
@@ -392,25 +400,36 @@ int main(int argc, char *argv[]) {
 
 		double t2 = wtime();
 		double t3;
+
 		// Compute the exerted forces by each particle from the processor subset
-		calc_force(ni, n_loc, eps2, ipred, jpred, force_tmp, t3, t_isend, t_recv);
+		calc_force(ni, n_loc, eps2, ipred, jpred, force_tmp);
+
 		double t4 = wtime();
+
+		// Calculate the resulting force for each particle
 		MPI_Allreduce(force_tmp, force, ni*Force::nword, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+		
 		double t5 = wtime();
 
     #pragma omp parallel for
 		for (int i = 0; i < ni; i++){
-			ptcl[active_list[i+1]].prefetch();
+			ptcl[active_list[i+1]].prefetch(); // does nothing
 			Particle &p = ptcl[active_list[i]];
+			// Correct position and velocity and update acceleration, jerk and pot
 			p.correct(dt_min, dt_max, eta, force[i]);
-			t_plus_dt[i].second = active_list[i];
-			t_plus_dt[i].first  = p.t + p.dt;
-			jptcl[active_list[i]] = Jparticle(p);
+			t_plus_dt[i].second = active_list[i]; // update index
+			t_plus_dt[i].first  = p.t + p.dt; // update t + dt 
+			jptcl[active_list[i]] = Jparticle(p); // save updated particle into local array
 		}
 
 		double t6 = wtime();
+
+		// Sort particles by time
 		std::sort(t_plus_dt, t_plus_dt + ni);
+		
 		double t7 = wtime();
+		
+		// Calculate different exceution times
 		t_scan  += t1 - t0;
 		t_pred  += t2 - t1;
 		t_jsend += t3 - t2;
@@ -418,6 +437,7 @@ int main(int argc, char *argv[]) {
 		t_comm  += t5 - t4;
 		t_corr  += t6 - t5;
 		t_scan  += t7 - t6;
+
 
 		time_cur = min_t;
 		Timesteps += 1.0;
@@ -428,6 +448,7 @@ int main(int argc, char *argv[]) {
 			t_contr += dt_contr;
 		}
 
+		// If disk time is reached, output results and update time disk
 		if (time_cur >= t_disk) {
 			if (myRank == 0) {
 				diskstep++;
@@ -437,9 +458,11 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+	// Next 2 lines do nothing
 	double g6_calls_sum;
 	MPI_Reduce(&g6_calls, &g6_calls_sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
+	// Print results
 	if (myRank == 0) {
 		printf("\n");
 		printf("Timesteps = %.0f   Total sum of integrated part. = %.0f   n_act average = %.0f\n", 

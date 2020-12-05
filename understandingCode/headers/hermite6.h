@@ -143,10 +143,7 @@ void calc_force(
 		double eps2,
 		Predictor ipred[],
 		Predictor jpred[],
-		Force     force[],
-		double &,
-		double &,
-		double &);
+		Force     force[]);
 
 #if 1
 void calc_force(
@@ -155,11 +152,8 @@ void calc_force(
 		double eps2,
 		Predictor ipred[],
 		Predictor jpred[],
-		Force     force[],
-		double &t1,
-		double &,
-		double &){
-	t1 = wtime();
+		Force     force[]){
+
 #pragma omp parallel for
 	for(int i=0; i<ni; i++){
 		dvec3 acc(0.), jrk(0.), snp(0.);

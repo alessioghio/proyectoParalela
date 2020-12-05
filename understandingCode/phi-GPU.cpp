@@ -8,7 +8,16 @@
 #include <sys/resource.h>
 #include <utility>
 #include <algorithm>
-#include "headers/hermite4.h"
+
+#ifdef FOURTH
+#  include "headers/hermite4.h"
+#elif defined SIXTH
+#  include "headers/hermite6.h"
+#elif defined EIGHTH
+#  include "headers/hermite8.h"
+#else
+#  error
+#endif
 
 // Define max number of bodies
 #define N_MAX     (1 << 20) // Global
@@ -165,16 +174,16 @@ static void energy(int myRank){
 	for (int i = 0; i < nbody; i++)
         mom += ptcl[i].mass * (ptcl[i].pos % ptcl[i].vel);
 
-	get_CPU_time(&CPU_time_real, &CPU_time_user, &CPU_time_syst);
+	get_CPU_time(&CPU_time_real, &CPU_time_user, &CPU_time_syst); // 6 FLOPS
 
 
 	if (init_call) {
-        einit = E_pot + E_kin;
+        einit = E_pot + E_kin; // 1 FLOP
         init_call = false;
   	}
 
-    double eerr = (E_pot+E_kin-einit)/einit;
-	einit = E_pot + E_kin;
+    double eerr = (E_pot+E_kin-einit)/einit; // 3 FLOPS
+	einit = E_pot + E_kin; // 2 FLOPS
 	
 
 	if (myRank == 0) {
@@ -226,7 +235,15 @@ int main(int argc, char *argv[]) {
 	MPI_Barrier(MPI_COMM_WORLD);
 	if (myRank == 0) {
         // Load parallel configuration
-		std::ifstream ifs("cfgs/phi-GPU4.cfg");
+		#ifdef FOURTH
+				std::ifstream ifs("phi-GPU4.cfg");
+		#endif
+		#ifdef SIXTH
+				std::ifstream ifs("phi-GPU6.cfg");
+		#endif
+		#ifdef EIGHTH
+				std::ifstream ifs("phi-GPU8.cfg");
+		#endif
 
 		// Import configuration variables
 		static char inp_fname[256];
@@ -271,7 +288,7 @@ int main(int argc, char *argv[]) {
             outputsnap();
         
 		// Update times
-        get_CPU_time(&CPU_time_real0, &CPU_time_user0, &CPU_time_syst0);
+        get_CPU_time(&CPU_time_real0, &CPU_time_user0, &CPU_time_syst0); // 6 FLOPS
     }
 
 	// Send configuration parameters to every process
@@ -289,9 +306,9 @@ int main(int argc, char *argv[]) {
 
 	// Divide maximum diferential by 2 while it is greater than the minimum value of
 	// interval of snapshot files output and interval for the energy control output
-	double dt_max = 1. / (1 << 3); // 1/2^3
+	double dt_max = 1. / (1 << 3); // 1/2^3 // 2 FLOPS
 	while (dt_max >= std::min(dt_disk, dt_contr)) 
-        dt_max *= 0.5;
+        dt_max *= 0.5; // 1 FLOP
 	
 	// Minimum diferential
     double dt_min = 1. / (1 << 23); // 1/2^23

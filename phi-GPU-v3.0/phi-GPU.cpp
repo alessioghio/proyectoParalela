@@ -602,8 +602,8 @@ int main(int argc, char *argv[]){
 		double t7 = wtime();
 		t_scan  += t1 - t0;
 		t_pred  += t2 - t1;
-		t_jsend += t3 - t2;
-		t_force += t4 - t3;
+		// t_jsend += t3 - t2;
+		t_force += t4 - t2;
 		t_comm  += t5 - t4;
 		t_corr  += t6 - t5;
 		t_scan  += t7 - t6;
@@ -643,16 +643,17 @@ int main(int argc, char *argv[]){
 		printf("Real Speed = %.3f GFlops \n", Gflops);
 
 #ifdef PROFILE
-		double t_tot = t_scan + t_pred + t_jsend + t_force + t_comm + t_corr;
-		t_force -= t_isend + t_recv;
+		// double t_tot = t_scan + t_pred + t_jsend + t_force + t_comm + t_corr;
+		double t_tot = t_scan + t_pred + t_force + t_comm + t_corr;
+		// t_force -= t_isend + t_recv;
 		// printf("Time ratio: %10.2E%10.2E%10.2E%10.2E%10.2E\n", t_scan/t_tot, t_pred/t_tot, t_forc/t_tot, t_comm/t_tot, t_corr/t_tot);
-		printf("        sec_tot     usec/step   ratio\n"); 
+		// printf("        sec_tot     usec/step   ratio\n");
 		printf("scan :%12.4E%12.4E%12.4E\n", t_scan, t_scan/Timesteps*1.e6, t_scan/t_tot);
 		printf("pred :%12.4E%12.4E%12.4E\n", t_pred, t_pred/Timesteps*1.e6, t_pred/t_tot);
-		printf("jsend:%12.4E%12.4E%12.4E\n", t_jsend, t_jsend/Timesteps*1.e6, t_jsend/t_tot);
-		printf("isend:%12.4E%12.4E%12.4E\n", t_isend, t_isend/Timesteps*1.e6, t_isend/t_tot);
+		// printf("jsend:%12.4E%12.4E%12.4E\n", t_jsend, t_jsend/Timesteps*1.e6, t_jsend/t_tot);
+		// printf("isend:%12.4E%12.4E%12.4E\n", t_isend, t_isend/Timesteps*1.e6, t_isend/t_tot);
 		printf("force:%12.4E%12.4E%12.4E\n", t_force, t_force/Timesteps*1.e6, t_force/t_tot);
-		printf("recv :%12.4E%12.4E%12.4E\n", t_recv, t_recv/Timesteps*1.e6, t_recv/t_tot);
+		// printf("recv :%12.4E%12.4E%12.4E\n", t_recv, t_recv/Timesteps*1.e6, t_recv/t_tot);
 		printf("comm :%12.4E%12.4E%12.4E\n", t_comm, t_comm/Timesteps*1.e6, t_comm/t_tot);
 		printf("corr :%12.4E%12.4E%12.4E\n", t_corr, t_corr/Timesteps*1.e6, t_corr/t_tot);
 		printf("tot  :%12.4E%12.4E%12.4E\n", t_tot, t_tot/Timesteps*1.e6, t_tot/t_tot);

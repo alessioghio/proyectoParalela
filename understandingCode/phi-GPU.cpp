@@ -142,34 +142,36 @@ static void energy(int myRank){
 	static bool init_call = true;
 	static double einit;
 
-	double E_pot = 0.0;
+	double E_pot = 0.0; // Accumulate Potential energy
 	for (int i = 0; i < nbody; i++)
         E_pot += ptcl[i].mass * ptcl[i].pot;
 
-	E_pot *= 0.5;
+	E_pot *= 0.5; // Divide potential energy by 2
 
-	double E_kin = 0.0;
+	double E_kin = 0.0; // Accumulate kinetic energy
 	for(int i = 0; i < nbody; i++)
         E_kin += ptcl[i].mass * ptcl[i].vel.norm2();
-	E_kin *= 0.5;
+	E_kin *= 0.5; // Divide kinetic energy by 2
 
-	assert(E_pot == E_pot);
+	assert(E_pot == E_pot); // ??
 	assert(E_kin == E_kin);
 
 	double mcm = 0.0;
 	dvec3 xcm = 0.0;
 	dvec3 vcm = 0.0;
 	for (int i = 0; i < nbody; i++) {
-		mcm += ptcl[i].mass;
-		xcm += ptcl[i].mass * ptcl[i].pos;
-		vcm += ptcl[i].mass * ptcl[i].vel;
+		mcm += ptcl[i].mass; // Accumulate mass
+		xcm += ptcl[i].mass * ptcl[i].pos; // Accumulate kg*m
+		vcm += ptcl[i].mass * ptcl[i].vel; // Accumulate kg *m/s
 	}
+	// Total accumulated position and speed
 	xcm /= mcm;
 	vcm /= mcm;
 
 	double rcm_mod = xcm.abs();
 	double vcm_mod = vcm.abs();
 
+	// Accumulate  momentum
 	dvec3 mom = 0.0;
 	for (int i = 0; i < nbody; i++)
         mom += ptcl[i].mass * (ptcl[i].pos % ptcl[i].vel);

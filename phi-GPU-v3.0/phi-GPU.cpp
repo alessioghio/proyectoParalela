@@ -428,11 +428,11 @@ int main(int argc, char *argv[]){
 		get_CPU_time(&CPU_time_real0, &CPU_time_user0, &CPU_time_syst0);
 	}
 	for(int l=0; l<Particle::init_iter; l++){
-#pragma omp parallel for
+// #pragma omp parallel for
 		for(int j=0; j<nj; j++){
 			jpred[j] = Predictor(time_cur, Jparticle(ptcl[j+jstart]));
 		}
-#pragma omp parallel for
+// #pragma omp parallel for
 		for(int i=0; i<ni; i++){
 			ipred[i] = Predictor(time_cur, Jparticle(ptcl[i]));
 		}
@@ -509,7 +509,7 @@ int main(int argc, char *argv[]){
 
 		double t1 = wtime();
 
-#pragma omp parallel for
+// #pragma omp parallel for
 #if 0
 		for(int j=0; j<nj; j++){
 			Taylor <double, dvec3> taylor;
@@ -547,7 +547,7 @@ int main(int argc, char *argv[]){
 #endif
 		int ni = n_act;
 
-#pragma omp parallel for
+// #pragma omp parallel for
 		for(int i=0; i<ni; i++){
 			// ipred[i] = Predictor(min_t, ptcl[active_list[i]]);
 #if 0
@@ -570,7 +570,7 @@ int main(int argc, char *argv[]){
 		MPI_Allreduce(force_tmp, force, ni*Force::nword, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 		double t5 = wtime();
 
-#pragma omp parallel for
+// #pragma omp parallel for
 		for(int i=0; i<ni; i++){
 			ptcl[active_list[i+1]].prefetch();
 			// jptcl[active_list[i+1]].prefetch();

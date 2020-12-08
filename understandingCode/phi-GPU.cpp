@@ -430,7 +430,7 @@ int main(int argc, char *argv[]) {
 		
 		double t5 = wtime();
 
-    #pragma omp parallel for
+    	#pragma omp parallel for
 		for (int i = 0; i < ni; i++){
 			ptcl[active_list[i+1]].prefetch(); // does nothing
 			Particle &p = ptcl[active_list[i]];

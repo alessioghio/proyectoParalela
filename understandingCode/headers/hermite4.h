@@ -75,9 +75,11 @@ struct Particle{
 		double jj = jrk.norm2();
 		double ss = snp.norm2();
 		double cc = crk.norm2();
+
 		double t1 = sqrt(aa*ss) + jj;
 		double t2 = sqrt(jj*cc) + ss;
 		double dt0 = eta * sqrt(t1/t2);
+		
 		assert(dt0 > dtmin);
 		dt0 = std::max(dt0, dtmin);
 		dt = dtmax;

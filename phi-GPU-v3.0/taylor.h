@@ -93,7 +93,7 @@ struct Taylor{
 		REAL h5 = h * REAL(1./5.);
 		REAL h6 = h * REAL(1./6.);
 		REAL h7 = h * REAL(1./7.);
-		return a0 + h*(a1 + h2*(a2 + h3*(a3 + h4*(a4 + h5*(a5 + h6*(a6 + h7*(a7)))))));
+		return a0 + h*(a1 + h2*(a2 + h3*(a3 + h4*(a4 + h5*(a5 + h6*(a6 + h7*(a7))))))); // 54
 	}
 	INLINE const VECT operator () (
 			const REAL &h, 

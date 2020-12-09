@@ -67,11 +67,11 @@ clean:
 
 
 cpu-8th: phi-GPU.cpp hermite8.h
-	mpicxx $(CXXFLAGS) -DEIGHTH  -o $@ $<
+	mpicxx -fopenmp $(CXXFLAGS) -DEIGHTH  -o $@ $<
 
 cpu-6th: phi-GPU.cpp hermite6.h
-	mpicxx $(CXXFLAGS) -DSIXTH  -o $@ $<
+	mpicxx -fopenmp $(CXXFLAGS) -DSIXTH  -o $@ $<
 
 cpu-4th: phi-GPU.cpp hermite4.h
-	mpicxx $(CXXFLAGS) -DFOURTH -o $@ $<
+	mpicxx -fopenmp $(CXXFLAGS) -DFOURTH -o $@ $<
 

@@ -8,6 +8,7 @@
 /* 10.07.2009 19:12 	 				*/
 /*                               			*/
 
+#include <omp.h>
 #include <mpi.h>
 #include <iostream>
 #include <fstream>
@@ -284,6 +285,7 @@ static void energy(int myRank){
 }
 
 int main(int argc, char *argv[]){
+	omp_set_num_threads(2);
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 	MPI_Comm_size(MPI_COMM_WORLD, &n_proc);	
@@ -428,12 +430,13 @@ int main(int argc, char *argv[]){
 		get_CPU_time(&CPU_time_real0, &CPU_time_user0, &CPU_time_syst0);
 	}
 	for(int l=0; l<Particle::init_iter; l++){
-// #pragma omp parallel for
-		for(int j=0; j<nj; j++){
+		int i, j;
+		#pragma omp parallel for schedule(dynamic) shared(jpred, ptcl, nj, time_cur, jstart) private(j) num_threads(2)
+		for(j=0; j<nj; j++){
 			jpred[j] = Predictor(time_cur, Jparticle(ptcl[j+jstart]));
 		}
-// #pragma omp parallel for
-		for(int i=0; i<ni; i++){
+		#pragma omp parallel for schedule(dynamic) shared(ipred, ptcl, ni, time_cur, jstart) private(i) num_threads(2)
+		for(i=0; i<ni; i++){
 			ipred[i] = Predictor(time_cur, Jparticle(ptcl[i]));
 		}
 		double dum;
@@ -441,7 +444,6 @@ int main(int argc, char *argv[]){
 		MPI_Allreduce(force_tmp, force, ni*Force::nword, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
 		for(int i=0; i<ni; i++){
-
 			ptcl[i].init(time_cur, dt_min, dt_max, eta, force[i]);
 
 /*

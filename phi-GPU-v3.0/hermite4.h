@@ -127,8 +127,9 @@ void calc_force(
 		double &,
 		double &){
 	t1 = wtime();
-#pragma omp parallel for
-	for(int i=0; i<ni; i++){
+	int i;
+	#pragma omp parallel for schedule(dynamic) shared(jpred, ipred, eps2, ni, nj, force) private(i) num_threads(2)
+	for(i=0; i<ni; i++){
 		double ax=0, ay=0, az=0;
 		double jx=0, jy=0, jz=0;
 		double pot=0;

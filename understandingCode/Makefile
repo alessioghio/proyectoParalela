@@ -66,12 +66,12 @@ clean:
 # 	nvcc -I $(SDK_PATH)/common/inc -Xcompiler "-O3" -cubin $<
 
 
-cpu-8th: phi-GPU.cpp hermite8.h
-	mpicxx -fopenmp $(CXXFLAGS) -DEIGHTH  -o $@ $<
+cpu-8th: phi-GPU.cpp headers/hermite8.h
+	mpicxx $(CXXFLAGS) -DEIGHTH  -o $@ $<
 
-cpu-6th: phi-GPU.cpp hermite6.h
-	mpicxx -fopenmp $(CXXFLAGS) -DSIXTH  -o $@ $<
+cpu-6th: phi-GPU.cpp headers/hermite6.h
+	mpicxx $(CXXFLAGS) -DSIXTH  -o $@ $<
 
-cpu-4th: phi-GPU.cpp hermite4.h
-	mpicxx -fopenmp $(CXXFLAGS) -DFOURTH -o $@ $<
+cpu-4th: phi-GPU.cpp headers/hermite4.h
+	mpicxx $(CXXFLAGS) -DFOURTH -o $@ $<
 

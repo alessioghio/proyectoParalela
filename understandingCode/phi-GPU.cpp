@@ -238,13 +238,13 @@ int main(int argc, char *argv[]) {
 	if (myRank == 0) {
         // Load parallel configuration
 		#ifdef FOURTH
-				std::ifstream ifs("phi-GPU4.cfg");
+				std::ifstream ifs("cfgs/phi-GPU4.cfg");
 		#endif
 		#ifdef SIXTH
-				std::ifstream ifs("phi-GPU6.cfg");
+				std::ifstream ifs("cfgs/phi-GPU6.cfg");
 		#endif
 		#ifdef EIGHTH
-				std::ifstream ifs("phi-GPU8.cfg");
+				std::ifstream ifs("cfgs/phi-GPU8.cfg");
 		#endif
 
 		// Import configuration variables

@@ -110,7 +110,7 @@ struct Predictor{
 
 void calc_force(int ni, int nj, double eps2, Predictor ipred[], Predictor jpred[],
 				Force force[]) {
-	// #pragma omp parallel for
+	#pragma omp parallel for schedule(dynamic) shared(jpred, ipred, eps2, ni, nj, force) private(i) num_threads(2)
 	for(int i = 0; i < ni; i++){
 		// Reset predictor state
 		double ax = 0, ay = 0, az = 0;

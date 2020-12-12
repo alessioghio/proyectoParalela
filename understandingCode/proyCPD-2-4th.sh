@@ -5,6 +5,6 @@
 #SBATCH --tasks-per-node=4
 #SBATCH --mem-per-cpu=1GB
 
-module load openmpi/2.1.6 
+module load gcc/5.5.0 openmpi/2.1.6 
 mpirun -np 2 ./cpu-4th
-module unload openmpi/2.1.6
+module unload gcc/5.5.0 openmpi/2.1.6

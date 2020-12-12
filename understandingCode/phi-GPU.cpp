@@ -336,15 +336,16 @@ int main(int argc, char *argv[]) {
 	
 	// Initialize particles' sates
 	for (int l = 0; l < Particle::init_iter; l++) {
-        #pragma omp parallel for schedule(dynamic) shared(jpred, ptcl, nj, time_cur, jstart) private(j) num_threads(2)
-            for(int j = 0; j < n_loc; j++){
+        int j, i;
+		#pragma omp parallel for schedule(dynamic) shared(jpred, time_cur, jstart, n_loc) private(j) num_threads(2)
+            for(j = 0; j < n_loc; j++){
 				// create a predictor object for each local particle
 				// it estimates the position and speed of the particle for the next time step
                 jpred[j] = Predictor(time_cur, Jparticle(ptcl[j+jstart]));
 			}
 
-        #pragma omp parallel for schedule(dynamic) shared(ipred, ptcl, ni, time_cur, jstart) private(i) num_threads(2)
-            for (int i = 0; i < nbody; i++){
+        #pragma omp parallel for schedule(dynamic) shared(ipred, time_cur, nbody) private(i) num_threads(2)
+            for (i = 0; i < nbody; i++){
 				// create a predictor object for each active particle, globally
 				// it estimates the position and speed of the particle for the next time step
                 ipred[i] = Predictor(time_cur, Jparticle(ptcl[i]));
@@ -400,8 +401,9 @@ int main(int argc, char *argv[]) {
 		}
 		double t1 = wtime();
 
+		int j;
     	#pragma omp parallel for schedule(dynamic) shared(jptcl, jstart, jpred, min_t, n_loc) private(j) num_threads(2)
-		for (int j = 0; j < n_loc; j++) {
+		for (j = 0; j < n_loc; j++) {
 			jptcl[j+jstart+1].prefetch(); // does nothing
 			// create a predictor object for each local particle
 			// it estimates the position and speed of the particle for the next time step
@@ -409,8 +411,9 @@ int main(int argc, char *argv[]) {
 		}
 		int ni = n_act;
 
+		int i;
     	#pragma omp parallel for schedule(dynamic) shared(jptcl, active_list, ipred, min_t, ni) private(i) num_threads(2)
-		for (int i = 0; i < ni; i++) {
+		for (i = 0; i < ni; i++) {
 			jptcl[active_list[i+1]].prefetch(); // does nothing
 			// create a predictor object for each active particle, globally
 			// it estimates the position and speed of the particle for the next time step
@@ -430,8 +433,8 @@ int main(int argc, char *argv[]) {
 		
 		double t5 = wtime();
 
-    	// #pragma omp parallel for
-		for (int i = 0; i < ni; i++){
+    	#pragma omp parallel for schedule(dynamic) shared(ptcl, active_list, ni, t_plus_dt, jptcl, dt_min, dt_max, eta, force) private(i)
+		for (i = 0; i < ni; i++){
 			ptcl[active_list[i+1]].prefetch(); // does nothing
 			Particle &p = ptcl[active_list[i]];
 			// Correct position and velocity and update acceleration, jerk and pot

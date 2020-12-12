@@ -336,14 +336,14 @@ int main(int argc, char *argv[]) {
 	
 	// Initialize particles' sates
 	for (int l = 0; l < Particle::init_iter; l++) {
-        #pragma omp parallel for
+        // #pragma omp parallel for
             for(int j = 0; j < n_loc; j++){
 				// create a predictor object for each local particle
 				// it estimates the position and speed of the particle for the next time step
                 jpred[j] = Predictor(time_cur, Jparticle(ptcl[j+jstart]));
 			}
 
-        #pragma omp parallel for
+        // #pragma omp parallel for
             for (int i = 0; i < nbody; i++){
 				// create a predictor object for each active particle, globally
 				// it estimates the position and speed of the particle for the next time step
@@ -400,7 +400,7 @@ int main(int argc, char *argv[]) {
 		}
 		double t1 = wtime();
 
-    	#pragma omp parallel for
+    	// #pragma omp parallel for
 		for (int j = 0; j < n_loc; j++) {
 			jptcl[j+jstart+1].prefetch(); // does nothing
 			// create a predictor object for each local particle
@@ -409,7 +409,7 @@ int main(int argc, char *argv[]) {
 		}
 		int ni = n_act;
 
-    	#pragma omp parallel for
+    	// #pragma omp parallel for
 		for (int i = 0; i < ni; i++) {
 			jptcl[active_list[i+1]].prefetch(); // does nothing
 			// create a predictor object for each active particle, globally
@@ -430,7 +430,7 @@ int main(int argc, char *argv[]) {
 		
 		double t5 = wtime();
 
-    	#pragma omp parallel for
+    	// #pragma omp parallel for
 		for (int i = 0; i < ni; i++){
 			ptcl[active_list[i+1]].prefetch(); // does nothing
 			Particle &p = ptcl[active_list[i]];
